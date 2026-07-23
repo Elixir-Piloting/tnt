@@ -2,6 +2,7 @@
 
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
 import { intro, text, isCancel, cancel, spinner, outro } from "@clack/prompts";
@@ -20,9 +21,12 @@ function validateIdentifier(val) {
 
 intro("tnt — scaffold a Tauri 2 + Next.js app");
 
+const cwdName = path.basename(process.cwd());
+
 const appName = await text({
   message: "What is your app name?",
   placeholder: "my-tauri-app",
+  defaultValue: cwdName,
   validate: (val) => {
     if (!val || val.trim().length === 0) return "App name is required";
     if (!/^[a-z0-9][a-z0-9._-]*$/i.test(val.trim())) return "App name may only contain letters, numbers, dots, hyphens, and underscores";
@@ -34,9 +38,13 @@ if (isCancel(appName)) {
   process.exit(0);
 }
 
+const username = os.userInfo().username;
+const defaultIdentifier = `com.${username.toLowerCase().replace(/[^a-z0-9]/g, "")}.${appName.trim().toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+
 const identifier = await text({
   message: "What is your bundle identifier?",
   placeholder: "com.example.app",
+  defaultValue: defaultIdentifier,
   validate: validateIdentifier,
 });
 
@@ -56,20 +64,25 @@ const s = spinner();
 s.start("Copying template files");
 
 await fse.copy(templateDir, targetDir, {
-  filter: (src) => !src.includes("node_modules") && !src.includes(".git") && !src.includes("target"),
+  filter: (src) => {
+    const relative = path.relative(templateDir, src);
+    const parts = relative.split(path.sep);
+    return !parts.some((p) => p === "node_modules" || p === ".git" || p === "target");
+  },
 });
 
 s.stop("Template copied");
 
 s.start("Writing project configuration");
 
-const replacements = [
-  [path.join(targetDir, "package.json")],
-  [path.join(targetDir, "src-tauri", "Cargo.toml")],
-  [path.join(targetDir, "src-tauri", "tauri.conf.json")],
+const toReplace = [
+  "package.json",
+  path.join("src-tauri", "Cargo.toml"),
+  path.join("src-tauri", "tauri.conf.json"),
 ];
 
-for (const [filePath] of replacements) {
+for (const rel of toReplace) {
+  const filePath = path.join(targetDir, rel);
   let content = await fse.readFile(filePath, "utf8");
   content = content.replace(/\{\{APP_NAME\}\}/g, appName.trim());
   content = content.replace(/\{\{IDENTIFIER\}\}/g, identifier.trim());
