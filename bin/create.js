@@ -19,6 +19,11 @@ function validateIdentifier(val) {
   if (!REVERSE_DNS_RE.test(val.trim())) return "Must be a valid reverse-DNS identifier (e.g. com.example.app)";
 }
 
+if (!fs.existsSync(templateDir)) {
+  console.error(`Template directory not found at ${templateDir}`);
+  process.exit(1);
+}
+
 intro("tnt — scaffold a Tauri 2 + Next.js app");
 
 const cwdName = path.basename(process.cwd());
@@ -26,7 +31,7 @@ const cwdName = path.basename(process.cwd());
 const appName = await text({
   message: "What is your app name?",
   placeholder: "my-tauri-app",
-  defaultValue: cwdName,
+  initialValue: cwdName,
   validate: (val) => {
     if (!val || val.trim().length === 0) return "App name is required";
     if (!/^[a-z0-9][a-z0-9._-]*$/i.test(val.trim())) return "App name may only contain letters, numbers, dots, hyphens, and underscores";
@@ -43,8 +48,7 @@ const defaultIdentifier = `com.${username.toLowerCase().replace(/[^a-z0-9]/g, ""
 
 const identifier = await text({
   message: "What is your bundle identifier?",
-  placeholder: "com.example.app",
-  defaultValue: defaultIdentifier,
+  initialValue: defaultIdentifier,
   validate: validateIdentifier,
 });
 
@@ -63,13 +67,7 @@ if (fs.existsSync(targetDir)) {
 const s = spinner();
 s.start("Copying template files");
 
-await fse.copy(templateDir, targetDir, {
-  filter: (src) => {
-    const relative = path.relative(templateDir, src);
-    const parts = relative.split(path.sep);
-    return !parts.some((p) => p === "node_modules" || p === ".git" || p === "target");
-  },
-});
+await fse.copy(templateDir, targetDir);
 
 s.stop("Template copied");
 
