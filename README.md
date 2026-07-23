@@ -5,7 +5,7 @@ Scaffold a Tauri 2 + Next.js (App Router, static export) app in one command.
 ## Usage
 
 ```bash
-pnpm dlx github:<your-github-username>/tnt
+pnpm dlx github:Elixir-Piloting/tnt
 ```
 
 You will be prompted for:
