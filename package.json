@@ -1,0 +1,13 @@
+{
+  "name": "tnt",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "bin": {
+    "tnt": "./bin/create.js"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.10.1",
+    "fs-extra": "^11.3.0"
+  }
+}
