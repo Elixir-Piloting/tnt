@@ -6,7 +6,6 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
 import { intro, text, isCancel, cancel, spinner, outro } from "@clack/prompts";
-import fse from "fs-extra";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,9 +66,18 @@ if (fs.existsSync(targetDir)) {
 const s = spinner();
 s.start("Copying template files");
 
-await fse.copy(templateDir, targetDir);
+fs.cpSync(templateDir, targetDir, { recursive: true });
 
 s.stop("Template copied");
+
+const entries = fs.readdirSync(targetDir);
+if (!fs.existsSync(path.join(targetDir, "package.json"))) {
+  s.stop(
+    `Template copy may be incomplete — expected package.json in ${targetDir}, found: ${entries.join(", ")}`,
+    1,
+  );
+  process.exit(1);
+}
 
 s.start("Writing project configuration");
 
@@ -81,10 +89,10 @@ const toReplace = [
 
 for (const rel of toReplace) {
   const filePath = path.join(targetDir, rel);
-  let content = await fse.readFile(filePath, "utf8");
+  let content = fs.readFileSync(filePath, "utf8");
   content = content.replace(/\{\{APP_NAME\}\}/g, appName.trim());
   content = content.replace(/\{\{IDENTIFIER\}\}/g, identifier.trim());
-  await fse.writeFile(filePath, content, "utf8");
+  fs.writeFileSync(filePath, content, "utf8");
 }
 
 s.stop("Configuration written");
